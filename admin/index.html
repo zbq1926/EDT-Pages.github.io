@@ -1722,7 +1722,7 @@ html.dark-mode .moon-icon {
                     <div class="form-group">
                         <label for="socks5Addr">SOCKS5</label>
                         <div class="input-wrapper">
-                        <input type="text" id="socks5Addr" title="SOCKS5" placeholder="user:password@127.0.0.1:1080" onchange="markModified('proxy')">
+                        <input type="text" id="socks5Addr" title="SOCKS5" placeholder="user:password@127.0.0.1:1080" onchange="processProxyAddress('socks5')" oninput="processProxyAddress('socks5')">
                             <div class="checkbox-group">
                                 <input type="checkbox" id="globalSocks5" title="启用全局代理" onchange="markModified('proxy')">
                                 <label for="globalSocks5" class="checkbox-label">启用全局代理</label>
@@ -1735,7 +1735,7 @@ html.dark-mode .moon-icon {
                     <div class="form-group">
                         <label for="httpAddr">HTTP</label>
                         <div class="input-wrapper">
-                        <input type="text" id="httpAddr" title="HTTP" placeholder="user:password@127.0.0.1:1080" onchange="markModified('proxy')">
+                        <input type="text" id="httpAddr" title="HTTP" placeholder="user:password@127.0.0.1:8080" onchange="processProxyAddress('http')" oninput="processProxyAddress('http')">
                             <div class="checkbox-group">
                                 <input type="checkbox" id="globalHTTP" title="启用全局代理" onchange="markModified('proxy')">
                                 <label for="globalHTTP" class="checkbox-label">启用全局代理</label>
@@ -2129,6 +2129,91 @@ function updateProtocol() {
         transport.disabled = false;
     }
     */
+}
+
+// 处理SOCKS5和HTTP代理地址
+function processProxyAddress(type) {
+    const fieldId = type === 'socks5' ? 'socks5Addr' : 'httpAddr';
+    const input = document.getElementById(fieldId).value.trim();
+    let cleanAddress = '';
+    
+    if (input) {
+        cleanAddress = extractProxyAddress(input, type);
+        document.getElementById(fieldId).value = cleanAddress;
+        
+        // 如果输入内容包含协议标识，自动切换反代模式并转移内容
+        switchProxyModeByProtocol(input, cleanAddress);
+    }
+    
+    markModified('proxy');
+}
+
+// 提取代理地址中的纯格式
+function extractProxyAddress(input, type) {
+    input = input.trim();
+    
+    // 移除开头的 "/" 或 "/"
+    if (input.startsWith('/')) {
+        input = input.substring(1).trim();
+    }
+    
+    // 检测并移除协议前缀
+    const socks5Prefixes = ['socks5://', 'socks5=', 'socks5://'];
+    const httpPrefixes = ['http://', 'http=', 'https://'];
+    
+    for (const prefix of socks5Prefixes) {
+        if (input.toLowerCase().startsWith(prefix)) {
+            input = input.substring(prefix.length).trim();
+            break;
+        }
+    }
+    
+    for (const prefix of httpPrefixes) {
+        if (input.toLowerCase().startsWith(prefix)) {
+            input = input.substring(prefix.length).trim();
+            break;
+        }
+    }
+    
+    // 移除末尾的备注（#符号之后的内容）
+    if (input.includes('#')) {
+        input = input.split('#')[0].trim();
+    }
+    
+    return input;
+}
+
+// 根据协议自动切换反代模式
+function switchProxyModeByProtocol(input, cleanAddress) {
+    const lowerInput = input.toLowerCase();
+    
+    // 检查是否包含socks5协议
+    if (lowerInput.includes('socks5://') || lowerInput.includes('socks5=') || lowerInput.startsWith('/socks')) {
+        // 切换到SOCKS5模式
+        document.getElementById('proxyMode').value = 'socks5';
+        
+        // 清空其他模式的内容，填充SOCKS5
+        document.getElementById('proxyIP').value = '';
+        document.getElementById('socks5Addr').value = cleanAddress;
+        document.getElementById('httpAddr').value = '';
+        
+        updateProxyMode();
+        return;
+    }
+    
+    // 检查是否包含http协议
+    if (lowerInput.includes('http://') || lowerInput.includes('http=') || lowerInput.includes('https://') || lowerInput.startsWith('/http')) {
+        // 切换到HTTP模式
+        document.getElementById('proxyMode').value = 'http';
+        
+        // 清空其他模式的内容，填充HTTP
+        document.getElementById('proxyIP').value = '';
+        document.getElementById('socks5Addr').value = '';
+        document.getElementById('httpAddr').value = cleanAddress;
+        
+        updateProxyMode();
+        return;
+    }
 }
 
 function updateProxyMode() {
