@@ -811,7 +811,7 @@ html.dark-mode .module-title {
     color: var(--text-primary)
 }
 
-html.dark-mode .form-group input,
+html.dark-mode .form-group input:not([type="checkbox"]),
 html.dark-mode .form-group select,
 html.dark-mode .form-group textarea {
     background: var(--input-bg)!important;
@@ -819,25 +819,25 @@ html.dark-mode .form-group textarea {
     border-color: var(--input-border)!important
 }
 
-html.dark-mode .form-group input::placeholder,
+html.dark-mode .form-group input:not([type="checkbox"])::placeholder,
 html.dark-mode .form-group textarea::placeholder {
     color: var(--text-secondary)!important
 }
 
-html.dark-mode .form-group input:focus,
+html.dark-mode .form-group input:not([type="checkbox"]):focus,
 html.dark-mode .form-group select:focus,
 html.dark-mode .form-group textarea:focus {
     border-color: #7c3aed!important;
     box-shadow: 0 0 0 4px rgba(124,58,237,0.1)!important
 }
 
-html.dark-mode .form-group input:disabled,
+html.dark-mode .form-group input:not([type="checkbox"]):disabled,
 html.dark-mode .form-group select:disabled {
     background-color: var(--input-bg)!important;
     color: var(--text-secondary)!important
 }
 
-html.dark-mode .form-group input[readonly] {
+html.dark-mode .form-group input:not([type="checkbox"])[readonly] {
     background-color: var(--input-bg)!important;
     color: var(--text-secondary)!important
 }
