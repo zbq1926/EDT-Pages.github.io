@@ -1790,6 +1790,36 @@
             color: #f59e0b !important;
         }
 
+        /* 倒计时数字样式 */
+        .countdown-numbers {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+
+        /* 倒计时文字样式 */
+        .countdown-text {
+            color: #6b7280;
+        }
+
+        /* 响应式布局：桌面端隐藏换行符，移动端显示 */
+        @media (min-width: 768px) {
+            .cf-info-text br {
+                display: none;
+            }
+            .cf-info-text {
+                white-space: nowrap;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .cf-info-text br {
+                display: block;
+            }
+            .cf-info-text {
+                white-space: normal;
+            }
+        }
+
         /* ==================== 深色模式支持 ==================== */
 
         html.dark-mode .cf-stats-card {
@@ -1831,6 +1861,17 @@ html.dark-mode .cf-progress-bar {
 
         html.dark-mode .cf-highlight {
             color: #fbbf24 !important;
+        }
+
+        /* 深色模式倒计时数字样式 */
+        html.dark-mode .countdown-numbers {
+            color: #fbbf24;
+            font-weight: bold;
+        }
+
+        /* 深色模式倒计时文字样式 */
+        html.dark-mode .countdown-text {
+            color: #9ca3af;
         }
     </style>
 </head>
@@ -1902,9 +1943,7 @@ html.dark-mode .cf-progress-bar {
                         <div class="cf-info-box">
                             <div class="cf-info-icon">ℹ️</div>
                             <div class="cf-info-text">
-                                <strong>每日归零重置时间：</strong><br>北京时间 (UTC+8) 每天 <strong class="cf-highlight">8:00</strong>
-                                重置<br>
-                                今日使用情况总计：<strong class="cf-highlight" id="cfTotalDisplay">-</strong>
+                                <strong>每日请求数重置清零：</strong><br><span id="countdown" class="cf-highlight">距离重置时间还有 15小时 24分 34秒</span>，<br>北京时间 (UTC+8) 每天 <strong class="cf-highlight">8:00</strong>重置<br>，今日使用情况总计：<strong class="cf-highlight" id="cfTotalDisplay">-</strong>。
                             </div>
                         </div>
                     </div>
@@ -4045,9 +4084,28 @@ html.dark-mode .cf-progress-bar {
             updateButtonStates();
         }
 
+        // 更新倒计时
+        function updateCountdown() {
+            const now = new Date();
+            const nextMidnightUTC = new Date(now);
+            nextMidnightUTC.setUTCHours(0, 0, 0, 0);
+            nextMidnightUTC.setUTCDate(nextMidnightUTC.getUTCDate() + 1); // 总是设置为明天的0点
+            
+            const diff = nextMidnightUTC - now;
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            document.getElementById('countdown').innerHTML = `<span class="countdown-text">距离重置时间还有</span> <span class="countdown-numbers">${hours.toString().padStart(2, '0')}</span><span class="countdown-text">小时</span><span class="countdown-numbers">${minutes.toString().padStart(2, '0')}</span><span class="countdown-text">分</span><span class="countdown-numbers">${seconds.toString().padStart(2, '0')}</span><span class="countdown-text">秒</span>`;
+        }
+
         // 初始化
         initializeTheme();
         window.addEventListener('DOMContentLoaded', loadConfig);
+
+        // 启动倒计时更新
+        setInterval(updateCountdown, 1000);
+        updateCountdown(); // 立即执行一次
     </script>
 </body>
 
