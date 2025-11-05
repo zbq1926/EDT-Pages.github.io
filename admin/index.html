@@ -2424,10 +2424,7 @@
                         <div class="cf-info-box">
                             <div class="cf-info-icon">ℹ️</div>
                             <div class="cf-info-text">
-                                <strong>每日请求数重置清零：</strong><br><span id="countdown" class="cf-highlight">距离重置时间还有 15小时
-                                    24分 34秒</span>，<br>北京时间 (UTC+8) 每天 <strong
-                                    class="cf-highlight">8:00</strong>重置<br>，今日使用情况总计：<strong class="cf-highlight"
-                                    id="cfTotalDisplay">-</strong>。
+                                <strong>每日请求数重置清零：</strong><br><span id="countdown" class="cf-highlight">距离重置还有 15小时24分 34秒</span>，<br>北京时间 (UTC+8)  <strong class="cf-highlight">8:00</strong>重置，<br>今日使用情况总计：<strong class="cf-highlight"id="cfTotalDisplay">-</strong>。
                             </div>
                         </div>
                     </div>
@@ -4830,7 +4827,7 @@
             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
             const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-            document.getElementById('countdown').innerHTML = `<span class="countdown-text">距离重置时间还有</span> <span class="countdown-numbers">${hours.toString().padStart(2, '0')}</span><span class="countdown-text">小时</span><span class="countdown-numbers">${minutes.toString().padStart(2, '0')}</span><span class="countdown-text">分</span><span class="countdown-numbers">${seconds.toString().padStart(2, '0')}</span><span class="countdown-text">秒</span>`;
+            document.getElementById('countdown').innerHTML = `<span class="countdown-text">距离重置还有</span> <span class="countdown-numbers">${hours.toString().padStart(2, '0')}</span><span class="countdown-text">小时</span><span class="countdown-numbers">${minutes.toString().padStart(2, '0')}</span><span class="countdown-text">分</span><span class="countdown-numbers">${seconds.toString().padStart(2, '0')}</span><span class="countdown-text">秒</span>`;
         }
 
         // ==================== 在线优选相关函数 ====================
