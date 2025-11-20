@@ -622,6 +622,9 @@
 
         .checkbox-row .form-group {
             margin-bottom: 0;
+            display: flex !important;
+            grid-template-columns: unset !important;
+            gap: unset !important;
         }
 
         /* 响应式设计 - 平板 */
@@ -3591,6 +3594,24 @@ vless://7b102311-43fd-4e8f-977e-8090623c101d@edt-pages.github.io:443?security=tl
                                 </div>
                             </div>
                         </div>
+
+                        <div class="form-group" id="tlsFragmentGroup" style="display: none;">
+                            <div class="input-wrapper">
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="tlsFragmentShadowrocket" title="启用分片(Shadowrocket)" onchange="handleTLSFragmentChange('Shadowrocket'); markModified('config')">
+                                    <label for="tlsFragmentShadowrocket" class="checkbox-label">启用分片(Shadowrocket)</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="tlsFragmentHappGroup" style="display: none;">
+                            <div class="input-wrapper">
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="tlsFragmentHapp" title="启用分片(Happ)" onchange="handleTLSFragmentChange('Happ'); markModified('config')">
+                                    <label for="tlsFragmentHapp" class="checkbox-label">启用分片(Happ)</label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="module-footer">
@@ -4407,6 +4428,22 @@ vless://7b102311-43fd-4e8f-977e-8090623c101d@edt-pages.github.io:443?security=tl
                 enable0RTTGroup.style.display = 'none';
             }
 
+            // 检查TLS分片字段是否存在
+            const tlsFragmentGroup = document.getElementById('tlsFragmentGroup');
+            const tlsFragmentHappGroup = document.getElementById('tlsFragmentHappGroup');
+            const tlsFragmentShadowrocket = document.getElementById('tlsFragmentShadowrocket');
+            const tlsFragmentHapp = document.getElementById('tlsFragmentHapp');
+            if (currentConfig['TLS分片'] !== undefined) {
+                tlsFragmentGroup.style.display = 'block';
+                tlsFragmentHappGroup.style.display = 'block';
+                // 根据当前值设置勾选状态
+                tlsFragmentShadowrocket.checked = currentConfig['TLS分片'] === 'Shadowrocket';
+                tlsFragmentHapp.checked = currentConfig['TLS分片'] === 'Happ';
+            } else {
+                tlsFragmentGroup.style.display = 'none';
+                tlsFragmentHappGroup.style.display = 'none';
+            }
+
             // 反代落地设置
             const socksEnabled = currentConfig.反代?.SOCKS5?.启用;
             if (!socksEnabled) {
@@ -4920,6 +4957,21 @@ vless://7b102311-43fd-4e8f-977e-8090623c101d@edt-pages.github.io:443?security=tl
             });
         }
 
+        function handleTLSFragmentChange(type) {
+            const shadowrocket = document.getElementById('tlsFragmentShadowrocket');
+            const happ = document.getElementById('tlsFragmentHapp');
+
+            if (type === 'Shadowrocket') {
+                if (shadowrocket.checked) {
+                    happ.checked = false;
+                }
+            } else if (type === 'Happ') {
+                if (happ.checked) {
+                    shadowrocket.checked = false;
+                }
+            }
+        }
+
         function showQRCode(elementId) {
             const text = document.getElementById(elementId).value;
             const container = document.getElementById('qrcodeContainer');
@@ -5003,6 +5055,20 @@ vless://7b102311-43fd-4e8f-977e-8090623c101d@edt-pages.github.io:443?security=tl
             // 保存启用0RTT（如果字段存在）
             if (currentConfig['启用0RTT'] !== undefined) {
                 currentConfig['启用0RTT'] = document.getElementById('enable0RTT').checked;
+            }
+
+            // 保存TLS分片（如果字段存在）
+            if (currentConfig['TLS分片'] !== undefined) {
+                const shadowrocket = document.getElementById('tlsFragmentShadowrocket').checked;
+                const happ = document.getElementById('tlsFragmentHapp').checked;
+                
+                if (shadowrocket) {
+                    currentConfig['TLS分片'] = 'Shadowrocket';
+                } else if (happ) {
+                    currentConfig['TLS分片'] = 'Happ';
+                } else {
+                    currentConfig['TLS分片'] = null;
+                }
             }
 
             await saveConfigToServer('config');
@@ -5125,6 +5191,12 @@ vless://7b102311-43fd-4e8f-977e-8090623c101d@edt-pages.github.io:443?security=tl
                 // 重置启用0RTT（如果字段存在）
                 if (currentConfig['启用0RTT'] !== undefined) {
                     document.getElementById('enable0RTT').checked = currentConfig['启用0RTT'] || false;
+                }
+
+                // 重置TLS分片（如果字段存在）
+                if (currentConfig['TLS分片'] !== undefined) {
+                    document.getElementById('tlsFragmentShadowrocket').checked = currentConfig['TLS分片'] === 'Shadowrocket';
+                    document.getElementById('tlsFragmentHapp').checked = currentConfig['TLS分片'] === 'Happ';
                 }
 
                 updateProtocol();
