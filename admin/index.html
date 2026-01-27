@@ -329,6 +329,7 @@
             border-radius: 12px;
             font-size: 16px;
             font-weight: 600;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             cursor: pointer;
             transition: all .3s ease;
             box-sizing: border-box;
@@ -1902,6 +1903,44 @@
         .btn-proxyip-help:active {
             transform: translateY(0);
             box-shadow: 0 2px 10px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-fofa {
+            background: linear-gradient(135deg, #439aff 0, #05f2f2 100%);
+            color: #fff !important;
+            padding: 10px 16px;
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgb(67, 154, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-fofa:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(5, 244, 244, 0.5);
+        }
+
+        .btn-fofa:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(5, 244, 244, 0.4);
+        }
+
+        .btn-360quake {
+            background: linear-gradient(135deg, #00AB7A 0, #00AB7A 100%);
+            color: #fff !important;
+            padding: 10px 16px;
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(0, 171, 122, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-360quake:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0, 171, 122, 0.5);
+        }
+
+        .btn-360quake:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(0, 171, 122, 0.4);
         }
 
         .btn-ech-help {
@@ -5796,14 +5835,17 @@ vless://7b102311-43fd-4e8f-977e-8090623c101d@edt-pages.github.io:443?security=tl
                 </div>
             </div>
 
-            <div class="btn-group" style="justify-content: center; margin-top: 30px; gap: 15px; flex-wrap: wrap;">
-                <button type="button" class="btn btn-proxyip-help" onclick="openFOFA()">
+            <div class="btn-group" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-top: 30px; max-width: 600px; margin-left: auto; margin-right: auto;">
+                <button type="button" class="btn btn-fofa" onclick="openFOFA()" style="padding: 12px 16px; font-size: 14px; font-weight: 500; white-space: nowrap;">
                     FOFA 测绘
                 </button>
-                <button type="button" class="btn btn-ech-help" onclick="window.open('https://check.proxyip.cmliussss.net/', '_blank')">
+                <button type="button" class="btn btn-360quake" onclick="open360Quake()" style="padding: 12px 16px; font-size: 14px; font-weight: 500; white-space: nowrap;">
+                    360 测绘
+                </button>
+                <button type="button" class="btn btn-ech-help" onclick="window.open('https://check.proxyip.cmliussss.net/', '_blank')" style="padding: 12px 16px; font-size: 14px; font-weight: 500; white-space: nowrap;">
                     可用性验证
                 </button>
-                <button type="button" class="btn btn-secondary" onclick="closeGetMoreProxyIPModal()" style="flex: 1; min-width: 100px;">
+                <button type="button" class="btn btn-secondary" onclick="closeGetMoreProxyIPModal()" style="padding: 12px 16px; font-size: 14px; font-weight: 500; white-space: nowrap;">
                     关闭
                 </button>
             </div>
@@ -11328,6 +11370,43 @@ vless://7b102311-43fd-4e8f-977e-8090623c101d@edt-pages.github.io:443?security=tl
 
             // 构建 URL
             const url = `https://fofa.info/result?qbase64=${encodeURIComponent(qbase64)}`;
+
+            // 打开新窗口
+            window.open(url, '_blank');
+        }
+
+        function open360Quake() {
+            const select = document.getElementById('proxyRegionSelect');
+            let region = select.value;
+
+            if (region === 'custom') {
+                const customInput = document.getElementById('customRegionInput');
+                region = customInput.value.trim().toUpperCase();
+                if (!region || region.length !== 2) {
+                    showToast('请输入有效的两位国家代码', 'error');
+                    return;
+                }
+            }
+
+            // 基础查询语句
+            const baseQuery = `((app:"Cloudflare" AND header:"Forbidden" AND asn!=13335 AND asn!=209242) AND service: "http/ssl")`;
+            let query = '';
+            
+            // HK 和 TW 使用 province 字段，其他使用 country 字段
+            if (region === 'HK') {
+                query = `${baseQuery} AND province: "HongKong"`;
+            } else if (region === 'TW') {
+                query = `${baseQuery} AND province: "TaiWan"`;
+            } else {
+                query = `${baseQuery} AND country: "${region}"`;
+            }
+
+            // URL 编码
+            const searchVal = encodeURIComponent(query);
+            const timestamp = Date.now();
+
+            // 构建 URL
+            const url = `https://quake.360.net/quake/#/searchResult?searchVal=${searchVal}&selectIndex=quake_service&ignore_cache=false&timeRange=&timeRange=&latest=true&t=${timestamp}`;
 
             // 打开新窗口
             window.open(url, '_blank');
