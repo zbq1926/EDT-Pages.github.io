@@ -11678,6 +11678,42 @@ vless://7b102311-43fd-4e8f-977e-8090623c101d@edt-pages.github.io:443?security=tl
 
         // ==================== SOCKS5 相关函数 ====================
         
+        // 代理类型配置
+        const proxyConfigs = {
+            socks5: {
+                modalId: 'exploreSocks5Modal',
+                regionSelectId: 'socks5RegionSelect',
+                proxySelectId: 'socks5ProxySelect',
+                proxySelectGroupId: 'socks5ProxySelectGroup',
+                loadingInfoId: 'socks5LoadingInfo',
+                confirmBtnId: 'socks5ConfirmBtn',
+                listData: 'socks5ListData',
+                countryMap: 'socks5CountryMap',
+                verificationStatus: 'socks5VerificationStatus',
+                verificationTimeouts: 'socks5VerificationTimeouts',
+                url: 'https://raw.githubusercontent.com/EDT-Pages/Proxy-List/main/data/socks5.json',
+                description: 'SOCKS5列表',
+                inputId: 'socks5Addr',
+                verifySingleFunction: verifySingleSocks5
+            },
+            http: {
+                modalId: 'exploreHTTPModal',
+                regionSelectId: 'httpRegionSelect',
+                proxySelectId: 'httpProxySelect',
+                proxySelectGroupId: 'httpProxySelectGroup',
+                loadingInfoId: 'httpLoadingInfo',
+                confirmBtnId: 'httpConfirmBtn',
+                listData: 'httpListData',
+                countryMap: 'httpCountryMap',
+                verificationStatus: 'httpVerificationStatus',
+                verificationTimeouts: 'httpVerificationTimeouts',
+                url: 'https://raw.githubusercontent.com/EDT-Pages/Proxy-List/main/data/http.json',
+                description: 'HTTP列表',
+                inputId: 'httpAddr',
+                verifySingleFunction: verifySingleHTTP
+            }
+        };
+        
         // 存储SOCKS5数据
         let socks5ListData = [];
         let socks5CountryMap = {};
@@ -11685,192 +11721,58 @@ vless://7b102311-43fd-4e8f-977e-8090623c101d@edt-pages.github.io:443?security=tl
         let socks5VerificationTimeouts = {}; // 存储超时计时器
 
         function showExploreSocks5Modal() {
-            const modal = document.getElementById('exploreSocks5Modal');
-            if (!modal) return;
-
-            // 重置状态
-            socks5ListData = [];
-            socks5CountryMap = {};
-            socks5VerificationStatus = {};
-            socks5VerificationTimeouts = {};
-            
-            modal.classList.add('show');
-            document.getElementById('socks5RegionSelect').innerHTML = '<option value="">加载中...</option>';
-            document.getElementById('socks5ProxySelectGroup').style.display = 'none';
-            document.getElementById('socks5LoadingInfo').style.display = 'none';
-            document.getElementById('socks5ConfirmBtn').disabled = true;
-
-            // 加载SOCKS5列表
-            loadSocks5List();
+            showExploreProxyModal('socks5');
         }
 
         function closeExploreSocks5Modal(event) {
-            event.preventDefault();
-            const modal = document.getElementById('exploreSocks5Modal');
-            if (modal) {
-                modal.classList.remove('show');
-            }
-            // 清除所有超时计时器
-            for (let timeout of Object.values(socks5VerificationTimeouts)) {
-                clearTimeout(timeout);
-            }
+            closeExploreProxyModal('socks5', event);
         }
 
         function loadSocks5List() {
-            const url = 'https://raw.githubusercontent.com/EDT-Pages/Proxy-List/main/data/socks5.json';
-            
-            fetchWithAutoMirror(url, 'SOCKS5列表')
-                .then(text => {
-                    const data = JSON.parse(text);
-                    socks5ListData = data;
-                    buildCountryMap();
-                    populateSocks5RegionSelect();
-                })
-                .catch(error => {
-                    console.error('加载SOCKS5列表失败:', error);
-                    showToast('加载SOCKS5列表失败: ' + error.message, 'error');
-                    document.getElementById('socks5RegionSelect').innerHTML = '<option value="">加载失败</option>';
-                });
+            loadProxyList('socks5');
         }
 
-        function buildCountryMap() {
-            socks5CountryMap = {};
+        function buildCountryMap(listData, countryMap) {
+            countryMap = {};
             
-            // 统计每个国家的SOCKS5数量
-            socks5ListData.forEach(item => {
+            // 统计每个国家的代理数量
+            listData.forEach(item => {
                 const country = item.country;
-                if (!socks5CountryMap[country]) {
-                    socks5CountryMap[country] = [];
+                if (!countryMap[country]) {
+                    countryMap[country] = [];
                 }
-                socks5CountryMap[country].push(item);
+                countryMap[country].push(item);
             });
 
             // 按数量排序（多到少）
-            socks5CountryMap = Object.fromEntries(
-                Object.entries(socks5CountryMap).sort((a, b) => b[1].length - a[1].length)
+            countryMap = Object.fromEntries(
+                Object.entries(countryMap).sort((a, b) => b[1].length - a[1].length)
             );
+            
+            return countryMap;
         }
 
         function populateSocks5RegionSelect() {
-            const select = document.getElementById('socks5RegionSelect');
-            let html = '<option value="">-- 请选择地区 --</option>';
-            
-            for (const [country, proxies] of Object.entries(socks5CountryMap)) {
-                html += `<option value="${country}">${country}(${proxies.length})</option>`;
-            }
-            
-            select.innerHTML = html;
+            populateProxyRegionSelect('socks5');
         }
 
         function onSocks5RegionChange() {
-            const selectedCountry = document.getElementById('socks5RegionSelect').value;
-            
-            if (!selectedCountry) {
-                document.getElementById('socks5ProxySelectGroup').style.display = 'none';
-                document.getElementById('socks5LoadingInfo').style.display = 'none';
-                document.getElementById('socks5ConfirmBtn').disabled = true;
-                return;
-            }
-
-            const proxies = socks5CountryMap[selectedCountry] || [];
-            
-            // 显示加载信息
-            document.getElementById('socks5LoadingInfo').style.display = 'block';
-            document.getElementById('socks5ProxySelectGroup').style.display = 'block';
-            
-            // 初始化每个代理的验证状态
-            proxies.forEach(proxy => {
-                if (!socks5VerificationStatus[proxy.proxy]) {
-                    socks5VerificationStatus[proxy.proxy] = {
-                        status: 'pending', // pending, success, failed, timeout
-                        responseTime: null
-                    };
-                }
-            });
-
-            // 显示代理列表
-            populateSocks5ProxySelect(selectedCountry);
-            
-            // 开始验证所有代理
-            verifySocks5Proxies(proxies);
+            onProxyRegionChange('socks5');
         }
 
         function populateSocks5ProxySelect(selectedCountry) {
-            const select = document.getElementById('socks5ProxySelect');
-            const proxies = socks5CountryMap[selectedCountry] || [];
-            
-            let html = '<option value="">-- 请选择 --</option>';
-            
-            // 获取当前地区的所有代理，并按状态和延迟排序
-            const sortedProxies = [...proxies].sort((a, b) => {
-                const statusA = socks5VerificationStatus[a.proxy];
-                const statusB = socks5VerificationStatus[b.proxy];
-                
-                // 可用的在前面，且按延迟从低到高
-                if (statusA.status === 'success' && statusB.status === 'success') {
-                    return (statusA.responseTime || 0) - (statusB.responseTime || 0);
-                }
-                if (statusA.status === 'success') return -1;
-                if (statusB.status === 'success') return 1;
-                
-                return 0;
-            });
-            
-            sortedProxies.forEach(proxy => {
-                const status = socks5VerificationStatus[proxy.proxy];
-                let emoji = '⏳';
-                let statusText = '验证中';
-                
-                if (status.status === 'success') {
-                    emoji = '✅';
-                    statusText = `${status.responseTime}ms`;
-                } else if (status.status === 'timeout') {
-                    emoji = '🔴';
-                    statusText = '已超时';
-                } else if (status.status === 'failed') {
-                    emoji = '🔴';
-                    statusText = '不可用';
-                }
-                
-                const label = `${emoji}(${statusText}) ${proxy.city} AS${proxy.asn} ${proxy.asOrganization}`;
-                const disabled = status.status !== 'success';
-                html += `<option value="${proxy.proxy}" ${disabled ? 'disabled' : ''}>${label}</option>`;
-            });
-            
-            select.innerHTML = html;
+            populateProxySelect(selectedCountry, 'socks5ProxySelect', socks5CountryMap, socks5VerificationStatus);
         }
 
         function verifySocks5Proxies(proxies) {
-            // 并发控制：最多4个并发请求
-            const maxConcurrent = 4;
-            let currentIndex = 0;
-            let activeRequests = 0;
-
-            function startNextProxy() {
-                if (currentIndex >= proxies.length || activeRequests >= maxConcurrent) {
-                    return;
-                }
-
-                activeRequests++;
-                const proxy = proxies[currentIndex++];
-                
-                verifySingleSocks5(proxy).finally(() => {
-                    activeRequests--;
-                    startNextProxy();
-                });
-            }
-
-            // 启动初始4个请求
-            for (let i = 0; i < Math.min(maxConcurrent, proxies.length); i++) {
-                startNextProxy();
-            }
+            verifyProxies(proxies, verifySingleSocks5);
         }
 
         function verifySingleSocks5(proxy) {
             return new Promise((resolve) => {
                 const { protocol, proxy: proxyUrl } = proxy;
                 const cleanProxy = proxyUrl.replace(protocol + '://', '');
-                const checkUrl = `./admin/check?${protocol}=${encodeURIComponent(cleanProxy)}&_t=${Date.now()}`;
+                const checkUrl = `/admin/check?${protocol}=${encodeURIComponent(cleanProxy)}&_t=${Date.now()}`;
                 
                 // 设置15秒超时
                 const timeoutId = setTimeout(() => {
@@ -11919,202 +11821,28 @@ vless://7b102311-43fd-4e8f-977e-8090623c101d@edt-pages.github.io:443?security=tl
         }
 
         function updateSocks5Display() {
-            const selectedCountry = document.getElementById('socks5RegionSelect').value;
-            if (selectedCountry) {
-                populateSocks5ProxySelect(selectedCountry);
-            }
-            
-            // 检查是否所有代理都验证完成
-            const proxies = socks5CountryMap[selectedCountry] || [];
-            const allVerified = proxies.every(p => {
-                const status = socks5VerificationStatus[p.proxy];
-                return status && status.status !== 'pending';
-            });
-            
-            if (allVerified) {
-                document.getElementById('socks5LoadingInfo').style.display = 'none';
-            }
-            
-            // 更新确定按钮状态
-            const select = document.getElementById('socks5ProxySelect');
-            const selectedValue = select.value;
-            const isValidSelected = selectedValue && 
-                socks5VerificationStatus[selectedValue] &&
-                socks5VerificationStatus[selectedValue].status === 'success';
-            document.getElementById('socks5ConfirmBtn').disabled = !isValidSelected;
+            updateProxyDisplay('socks5');
         }
 
         function confirmSelectSocks5() {
-            const select = document.getElementById('socks5ProxySelect');
-            const selectedProxy = select.value;
-            
-            if (!selectedProxy) {
-                showToast('请选择一个有效的SOCKS5代理', 'error');
-                return;
-            }
-            
-            // 填入SOCKS5地址
-            const socks5Input = document.getElementById('socks5Addr');
-            if (socks5Input) {
-                socks5Input.value = selectedProxy;
-                socks5Input.dispatchEvent(new Event('change', { bubbles: true }));
-                markModified('proxy');
-            }
-            
-            // 关闭模态框
-            closeExploreSocks5Modal({ preventDefault: () => {} });
-            
-            // 亮起保存和取消按钮
-            const saveBtn = document.getElementById('saveProxyBtn');
-            const cancelBtn = document.getElementById('cancelProxyBtn');
-            if (saveBtn) saveBtn.disabled = false;
-            if (cancelBtn) cancelBtn.disabled = false;
+            confirmSelectProxy('socks5');
         }
 
         function updateSocks5ConfirmButton() {
-            const select = document.getElementById('socks5ProxySelect');
-            const selectedValue = select.value;
-            const confirmBtn = document.getElementById('socks5ConfirmBtn');
-            
-            // 检查选中的代理是否可用
-            const isValidSelected = selectedValue && 
-                socks5VerificationStatus[selectedValue] &&
-                socks5VerificationStatus[selectedValue].status === 'success';
-            
-            if (confirmBtn) {
-                confirmBtn.disabled = !isValidSelected;
-            }
+            updateProxyConfirmButton('socks5');
         }
 
-        // ==================== HTTP 相关函数 ====================
-        
-        // 存储HTTP数据
-        let httpListData = [];
-        let httpCountryMap = {};
-        let httpVerificationStatus = {}; // 存储验证状态
-        let httpVerificationTimeouts = {}; // 存储超时计时器
-
-        function showExploreHTTPModal() {
-            const modal = document.getElementById('exploreHTTPModal');
-            if (!modal) return;
-
-            // 重置状态
-            httpListData = [];
-            httpCountryMap = {};
-            httpVerificationStatus = {};
-            httpVerificationTimeouts = {};
-            
-            modal.classList.add('show');
-            document.getElementById('httpRegionSelect').innerHTML = '<option value="">加载中...</option>';
-            document.getElementById('httpProxySelectGroup').style.display = 'none';
-            document.getElementById('httpLoadingInfo').style.display = 'none';
-            document.getElementById('httpConfirmBtn').disabled = true;
-
-            // 加载HTTP列表
-            loadHTTPList();
-        }
-
-        function closeExploreHTTPModal(event) {
-            event.preventDefault();
-            const modal = document.getElementById('exploreHTTPModal');
-            if (modal) {
-                modal.classList.remove('show');
-            }
-            // 清除所有超时计时器
-            for (let timeout of Object.values(httpVerificationTimeouts)) {
-                clearTimeout(timeout);
-            }
-        }
-
-        function loadHTTPList() {
-            const url = 'https://raw.githubusercontent.com/EDT-Pages/Proxy-List/main/data/http.json';
-            
-            fetchWithAutoMirror(url, 'HTTP列表')
-                .then(text => {
-                    const data = JSON.parse(text);
-                    httpListData = data;
-                    buildHTTPCountryMap();
-                    populateHTTPRegionSelect();
-                })
-                .catch(error => {
-                    console.error('加载HTTP列表失败:', error);
-                    showToast('加载HTTP列表失败: ' + error.message, 'error');
-                    document.getElementById('httpRegionSelect').innerHTML = '<option value="">加载失败</option>';
-                });
-        }
-
-        function buildHTTPCountryMap() {
-            httpCountryMap = {};
-            
-            // 统计每个国家的HTTP数量
-            httpListData.forEach(item => {
-                const country = item.country;
-                if (!httpCountryMap[country]) {
-                    httpCountryMap[country] = [];
-                }
-                httpCountryMap[country].push(item);
-            });
-
-            // 按数量排序（多到少）
-            httpCountryMap = Object.fromEntries(
-                Object.entries(httpCountryMap).sort((a, b) => b[1].length - a[1].length)
-            );
-        }
-
-        function populateHTTPRegionSelect() {
-            const select = document.getElementById('httpRegionSelect');
-            let html = '<option value="">-- 请选择地区 --</option>';
-            
-            for (const [country, proxies] of Object.entries(httpCountryMap)) {
-                html += `<option value="${country}">${country}(${proxies.length})</option>`;
-            }
-            
-            select.innerHTML = html;
-        }
-
-        function onHTTPRegionChange() {
-            const selectedCountry = document.getElementById('httpRegionSelect').value;
-            
-            if (!selectedCountry) {
-                document.getElementById('httpProxySelectGroup').style.display = 'none';
-                document.getElementById('httpLoadingInfo').style.display = 'none';
-                document.getElementById('httpConfirmBtn').disabled = true;
-                return;
-            }
-
-            const proxies = httpCountryMap[selectedCountry] || [];
-            
-            // 显示加载信息
-            document.getElementById('httpLoadingInfo').style.display = 'block';
-            document.getElementById('httpProxySelectGroup').style.display = 'block';
-            
-            // 初始化每个代理的验证状态
-            proxies.forEach(proxy => {
-                if (!httpVerificationStatus[proxy.proxy]) {
-                    httpVerificationStatus[proxy.proxy] = {
-                        status: 'pending', // pending, success, failed, timeout
-                        responseTime: null
-                    };
-                }
-            });
-
-            // 显示代理列表
-            populateHTTPProxySelect(selectedCountry);
-            
-            // 开始验证所有代理
-            verifyHTTPProxies(proxies);
-        }
-
-        function populateHTTPProxySelect(selectedCountry) {
-            const select = document.getElementById('httpProxySelect');
-            const proxies = httpCountryMap[selectedCountry] || [];
+        // 通用代理选择器填充函数
+        function populateProxySelect(selectedCountry, selectId, countryMap, verificationStatus) {
+            const select = document.getElementById(selectId);
+            const proxies = countryMap[selectedCountry] || [];
             
             let html = '<option value="">-- 请选择 --</option>';
             
             // 获取当前地区的所有代理，并按状态和延迟排序
             const sortedProxies = [...proxies].sort((a, b) => {
-                const statusA = httpVerificationStatus[a.proxy];
-                const statusB = httpVerificationStatus[b.proxy];
+                const statusA = verificationStatus[a.proxy];
+                const statusB = verificationStatus[b.proxy];
                 
                 // 可用的在前面，且按延迟从低到高
                 if (statusA.status === 'success' && statusB.status === 'success') {
@@ -12127,7 +11855,7 @@ vless://7b102311-43fd-4e8f-977e-8090623c101d@edt-pages.github.io:443?security=tl
             });
             
             sortedProxies.forEach(proxy => {
-                const status = httpVerificationStatus[proxy.proxy];
+                const status = verificationStatus[proxy.proxy];
                 let emoji = '⏳';
                 let statusText = '验证中';
                 
@@ -12150,9 +11878,10 @@ vless://7b102311-43fd-4e8f-977e-8090623c101d@edt-pages.github.io:443?security=tl
             select.innerHTML = html;
         }
 
-        function verifyHTTPProxies(proxies) {
-            // 并发控制：最多4个并发请求
-            const maxConcurrent = 4;
+        // 通用代理验证函数
+        function verifyProxies(proxies, verifySingleFunction) {
+            // 并发控制：最多8个并发请求
+            const maxConcurrent = 8;
             let currentIndex = 0;
             let activeRequests = 0;
 
@@ -12164,7 +11893,7 @@ vless://7b102311-43fd-4e8f-977e-8090623c101d@edt-pages.github.io:443?security=tl
                 activeRequests++;
                 const proxy = proxies[currentIndex++];
                 
-                verifySingleHTTP(proxy).finally(() => {
+                verifySingleFunction(proxy).finally(() => {
                     activeRequests--;
                     startNextProxy();
                 });
@@ -12176,11 +11905,220 @@ vless://7b102311-43fd-4e8f-977e-8090623c101d@edt-pages.github.io:443?security=tl
             }
         }
 
+        // 通用代理探索函数
+        function showExploreProxyModal(type) {
+            const config = proxyConfigs[type];
+            const modal = document.getElementById(config.modalId);
+            if (!modal) return;
+
+            // 重置状态
+            window[config.listData] = [];
+            window[config.countryMap] = {};
+            window[config.verificationStatus] = {};
+            window[config.verificationTimeouts] = {};
+            
+            modal.classList.add('show');
+            document.getElementById(config.regionSelectId).innerHTML = '<option value="">加载中...</option>';
+            document.getElementById(config.proxySelectGroupId).style.display = 'none';
+            document.getElementById(config.loadingInfoId).style.display = 'none';
+            document.getElementById(config.confirmBtnId).disabled = true;
+
+            // 加载列表
+            loadProxyList(type);
+        }
+
+        function closeExploreProxyModal(type, event) {
+            event.preventDefault();
+            const config = proxyConfigs[type];
+            const modal = document.getElementById(config.modalId);
+            if (modal) {
+                modal.classList.remove('show');
+            }
+            // 清除所有超时计时器
+            for (let timeout of Object.values(window[config.verificationTimeouts])) {
+                clearTimeout(timeout);
+            }
+        }
+
+        function loadProxyList(type) {
+            const config = proxyConfigs[type];
+            const url = config.url;
+            
+            fetchWithAutoMirror(url, config.description)
+                .then(text => {
+                    const data = JSON.parse(text);
+                    window[config.listData] = data;
+                    window[config.countryMap] = buildCountryMap(window[config.listData], window[config.countryMap]);
+                    populateProxyRegionSelect(type);
+                })
+                .catch(error => {
+                    console.error(`${config.description}加载失败:`, error);
+                    document.getElementById(config.regionSelectId).innerHTML = '<option value="">加载失败</option>';
+                });
+        }
+
+        function populateProxyRegionSelect(type) {
+            const config = proxyConfigs[type];
+            const select = document.getElementById(config.regionSelectId);
+            let html = '<option value="">-- 请选择地区 --</option>';
+            
+            for (const [country, proxies] of Object.entries(window[config.countryMap])) {
+                html += `<option value="${country}">${country}(${proxies.length})</option>`;
+            }
+            
+            select.innerHTML = html;
+        }
+
+        function onProxyRegionChange(type) {
+            const config = proxyConfigs[type];
+            const selectedCountry = document.getElementById(config.regionSelectId).value;
+            
+            if (!selectedCountry) {
+                document.getElementById(config.proxySelectGroupId).style.display = 'none';
+                document.getElementById(config.loadingInfoId).style.display = 'none';
+                document.getElementById(config.confirmBtnId).disabled = true;
+                return;
+            }
+
+            const proxies = window[config.countryMap][selectedCountry] || [];
+            
+            // 显示加载信息
+            document.getElementById(config.loadingInfoId).style.display = 'block';
+            document.getElementById(config.proxySelectGroupId).style.display = 'block';
+            
+            // 初始化每个代理的验证状态
+            proxies.forEach(proxy => {
+                if (!window[config.verificationStatus][proxy.proxy]) {
+                    window[config.verificationStatus][proxy.proxy] = {
+                        status: 'pending', // pending, success, failed, timeout
+                        responseTime: null
+                    };
+                }
+            });
+
+            // 显示代理列表
+            populateProxySelect(selectedCountry, config.proxySelectId, window[config.countryMap], window[config.verificationStatus]);
+            
+            // 开始验证所有代理
+            verifyProxies(proxies, config.verifySingleFunction);
+        }
+
+        function updateProxyDisplay(type) {
+            const config = proxyConfigs[type];
+            const selectedCountry = document.getElementById(config.regionSelectId).value;
+            if (selectedCountry) {
+                populateProxySelect(selectedCountry, config.proxySelectId, window[config.countryMap], window[config.verificationStatus]);
+                
+                // 检查是否所有代理都验证完成
+                const proxies = window[config.countryMap][selectedCountry] || [];
+                const allVerified = proxies.every(p => {
+                    const status = window[config.verificationStatus][p.proxy];
+                    return status && status.status !== 'pending';
+                });
+                
+                if (allVerified) {
+                    document.getElementById(config.loadingInfoId).style.display = 'none';
+                }
+                
+                // 更新确定按钮状态
+                const select = document.getElementById(config.proxySelectId);
+                const selectedValue = select.value;
+                const isValidSelected = selectedValue && 
+                    window[config.verificationStatus][selectedValue] && 
+                    window[config.verificationStatus][selectedValue].status === 'success';
+                document.getElementById(config.confirmBtnId).disabled = !isValidSelected;
+            }
+        }
+
+        function confirmSelectProxy(type) {
+            const config = proxyConfigs[type];
+            const select = document.getElementById(config.proxySelectId);
+            const selectedProxy = select.value;
+            
+            if (!selectedProxy) {
+                showToast(`请选择一个有效的${type.toUpperCase()}代理`, 'error');
+                return;
+            }
+            
+            // 填入代理地址
+            const input = document.getElementById(config.inputId);
+            if (input) {
+                input.value = selectedProxy;
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                markModified('proxy');
+            }
+            
+            // 关闭模态框
+            const modal = document.getElementById(config.modalId);
+            if (modal) {
+                modal.classList.remove('show');
+            }
+            
+            // 亮起保存和取消按钮
+            const saveBtn = document.getElementById('saveProxyBtn');
+            const cancelBtn = document.getElementById('cancelProxyBtn');
+            if (saveBtn) saveBtn.disabled = false;
+            if (cancelBtn) cancelBtn.disabled = false;
+        }
+
+        function updateProxyConfirmButton(type) {
+            const config = proxyConfigs[type];
+            const select = document.getElementById(config.proxySelectId);
+            const selectedValue = select.value;
+            const confirmBtn = document.getElementById(config.confirmBtnId);
+            
+            // 检查选中的代理是否可用
+            const isValidSelected = selectedValue && 
+                window[config.verificationStatus][selectedValue] && 
+                window[config.verificationStatus][selectedValue].status === 'success';
+            
+            if (confirmBtn) {
+                confirmBtn.disabled = !isValidSelected;
+            }
+        }
+
+        // ==================== HTTP 相关函数 ====================
+        
+        // 存储HTTP数据
+        let httpListData = [];
+        let httpCountryMap = {};
+        let httpVerificationStatus = {}; // 存储验证状态
+        let httpVerificationTimeouts = {}; // 存储超时计时器
+
+        function showExploreHTTPModal() {
+            showExploreProxyModal('http');
+        }
+
+        function closeExploreHTTPModal(event) {
+            closeExploreProxyModal('http', event);
+        }
+
+        function loadHTTPList() {
+            loadProxyList('http');
+        }
+
+
+        function populateHTTPRegionSelect() {
+            populateProxyRegionSelect('http');
+        }
+
+        function onHTTPRegionChange() {
+            onProxyRegionChange('http');
+        }
+
+        function populateHTTPProxySelect(selectedCountry) {
+            populateProxySelect(selectedCountry, 'httpProxySelect', httpCountryMap, httpVerificationStatus);
+        }
+
+        function verifyHTTPProxies(proxies) {
+            verifyProxies(proxies, verifySingleHTTP);
+        }
+
         function verifySingleHTTP(proxy) {
             return new Promise((resolve) => {
                 const { protocol, proxy: proxyUrl } = proxy;
                 const cleanProxy = proxyUrl.replace(protocol + '://', '');
-                const checkUrl = `./admin/check?${protocol}=${encodeURIComponent(cleanProxy)}&_t=${Date.now()}`;
+                const checkUrl = `/admin/check?${protocol}=${encodeURIComponent(cleanProxy)}&_t=${Date.now()}`;
                 
                 // 设置15秒超时
                 const timeoutId = setTimeout(() => {
@@ -12229,71 +12167,15 @@ vless://7b102311-43fd-4e8f-977e-8090623c101d@edt-pages.github.io:443?security=tl
         }
 
         function updateHTTPDisplay() {
-            const selectedCountry = document.getElementById('httpRegionSelect').value;
-            if (selectedCountry) {
-                populateHTTPProxySelect(selectedCountry);
-            }
-            
-            // 检查是否所有代理都验证完成
-            const proxies = httpCountryMap[selectedCountry] || [];
-            const allVerified = proxies.every(p => {
-                const status = httpVerificationStatus[p.proxy];
-                return status && status.status !== 'pending';
-            });
-            
-            if (allVerified) {
-                document.getElementById('httpLoadingInfo').style.display = 'none';
-            }
-            
-            // 更新确定按钮状态
-            const select = document.getElementById('httpProxySelect');
-            const selectedValue = select.value;
-            const isValidSelected = selectedValue && 
-                httpVerificationStatus[selectedValue] &&
-                httpVerificationStatus[selectedValue].status === 'success';
-            document.getElementById('httpConfirmBtn').disabled = !isValidSelected;
+            updateProxyDisplay('http');
         }
 
         function confirmSelectHTTP() {
-            const select = document.getElementById('httpProxySelect');
-            const selectedProxy = select.value;
-            
-            if (!selectedProxy) {
-                showToast('请选择一个有效的HTTP代理', 'error');
-                return;
-            }
-            
-            // 填入HTTP地址
-            const httpInput = document.getElementById('httpAddr');
-            if (httpInput) {
-                httpInput.value = selectedProxy;
-                httpInput.dispatchEvent(new Event('change', { bubbles: true }));
-                markModified('proxy');
-            }
-            
-            // 关闭模态框
-            closeExploreHTTPModal({ preventDefault: () => {} });
-            
-            // 亮起保存和取消按钮
-            const saveBtn = document.getElementById('saveProxyBtn');
-            const cancelBtn = document.getElementById('cancelProxyBtn');
-            if (saveBtn) saveBtn.disabled = false;
-            if (cancelBtn) cancelBtn.disabled = false;
+            confirmSelectProxy('http');
         }
 
         function updateHTTPConfirmButton() {
-            const select = document.getElementById('httpProxySelect');
-            const selectedValue = select.value;
-            const confirmBtn = document.getElementById('httpConfirmBtn');
-            
-            // 检查选中的代理是否可用
-            const isValidSelected = selectedValue && 
-                httpVerificationStatus[selectedValue] &&
-                httpVerificationStatus[selectedValue].status === 'success';
-            
-            if (confirmBtn) {
-                confirmBtn.disabled = !isValidSelected;
-            }
+            updateProxyConfirmButton('http');
         }
 
         // ============ HOSTS 检查相关函数 ============
